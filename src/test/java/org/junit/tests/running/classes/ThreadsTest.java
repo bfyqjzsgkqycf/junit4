@@ -2,25 +2,25 @@ package org.junit.tests.running.classes;
 
 import org.junit.AfterClass;
 import org.junit.Test;
+import org.junit.internal.runners.ErrorReportingRunner;
 import org.junit.runner.Description;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Request;
 import org.junit.runner.Result;
 import org.junit.runner.RunWith;
+import org.junit.runner.Runner;
 import org.junit.runner.notification.RunListener;
 import org.junit.runners.BlockJUnit4ClassRunner;
+import org.junit.runners.model.InitializationError;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 
 public class ThreadsTest {
 
-    private List<Boolean> interruptedFlags = new ArrayList<Boolean>();
-    private JUnitCore core = new JUnitCore();
+    private String log = "";
 
     public static class TestWithInterrupt {
 
@@ -38,17 +38,19 @@ public class ThreadsTest {
 
     @Test
     public void currentThreadInterruptedStatusIsClearedAfterEachTestExecution() {
-        core.addListener(new RunListener() {
+        log = "";
+        JUnitCore jUnitCore = new JUnitCore();
+        jUnitCore.addListener(new RunListener() {
             @Override
             public void testFinished(Description description) {
-                interruptedFlags.add(Thread.currentThread().isInterrupted());
+                log += Thread.currentThread().isInterrupted() + " ";
             }
         });
 
-        Result result = core.run(TestWithInterrupt.class);
+        Result result = jUnitCore.run(TestWithInterrupt.class);
 
         assertEquals(0, result.getFailureCount());
-        assertEquals(asList(false, false), interruptedFlags);
+        assertEquals("false false ", log);
     }
 
     @RunWith(BlockJUnit4ClassRunner.class)
@@ -66,18 +68,29 @@ public class ThreadsTest {
 
     @Test
     public void currentThreadInterruptStatusIsClearedAfterSuiteExecution() {
-        core.addListener(new RunListener() {
+        log = "";
+        JUnitCore jUnitCore = new JUnitCore();
+        jUnitCore.addListener(new RunListener() {
             @Override
-            public void testSuiteFinished(Description description) {
-                interruptedFlags.add(Thread.currentThread().isInterrupted());
+            public void testSuiteFinished(Description description) throws Exception {
+                log += Thread.currentThread().isInterrupted();
             }
         });
 
-        Request request = Request.aClass(TestWithInterruptFromAfterClass.class);
+        Request request = new Request() {
+            @Override
+            public Runner getRunner() {
+                try {
+                    return new BlockJUnit4ClassRunner(TestWithInterruptFromAfterClass.class) {
+                    };
+                } catch (InitializationError e) {
+                    return new ErrorReportingRunner(TestWithInterruptFromAfterClass.class, e);
+                }
+            }
+        };
 
-        Result result = core.run(request);
-
+        Result result = jUnitCore.run(request);
         assertEquals(0, result.getFailureCount());
-        assertEquals(singletonList(false), interruptedFlags);
+        assertEquals("false", log);
     }
 }
