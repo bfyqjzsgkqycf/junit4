@@ -6,13 +6,7 @@ import static org.junit.internal.runners.rules.RuleMemberValidator.CLASS_RULE_VA
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -65,7 +59,7 @@ import org.junit.validator.TestClassValidator;
  */
 public abstract class ParentRunner<T> extends Runner implements Filterable,
         Orderable {
-    private static final List<TestClassValidator> VALIDATORS = Collections.<TestClassValidator>singletonList(
+    private static final List<TestClassValidator> VALIDATORS = Arrays.<TestClassValidator>asList(
             new AnnotationsValidator());
 
     private final Lock childrenLock = new ReentrantLock();
