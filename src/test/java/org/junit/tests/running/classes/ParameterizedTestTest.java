@@ -7,14 +7,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 import static org.junit.experimental.results.PrintableResult.testResult;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.AfterClass;
@@ -28,6 +24,7 @@ import org.junit.runner.Result;
 import org.junit.runner.RunWith;
 import org.junit.runner.Runner;
 import org.junit.runner.notification.Failure;
+import org.junit.runner.notification.RunListener;
 import org.junit.runners.MethodSorters;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -766,16 +763,16 @@ public class ParameterizedTestTest {
     }
 
     @RunWith(Parameterized.class)
-    public static class AssumptionInParametersMethod {
-        static boolean assumptionFails;
+    public static class ParameterizedAssumtionViolation {
+        static boolean condition;
 
         @Parameters
         public static Iterable<String> data() {
-            assumeFalse(assumptionFails);
+            assumeFalse(condition);
             return Collections.singletonList("foobar");
         }
 
-        public AssumptionInParametersMethod(String parameter) {
+        public ParameterizedAssumtionViolation(String parameter) {
         }
 
         @Test
@@ -788,22 +785,25 @@ public class ParameterizedTestTest {
     }
 
     @Test
-    public void testsAreExecutedWhenAssumptionInParametersMethodDoesNotFail() {
-        AssumptionInParametersMethod.assumptionFails = false;
-        Result result = JUnitCore.runClasses(AssumptionInParametersMethod.class);
-        assertTrue(result.wasSuccessful());
-        assertEquals(0, result.getAssumptionFailureCount());
-        assertEquals(0, result.getIgnoreCount());
-        assertEquals(2, result.getRunCount());
-    }
+    public void assumtionViolationInParameters() {
+        ParameterizedAssumtionViolation.condition = true;
+        Result successResult = JUnitCore.runClasses(ParameterizedAssumtionViolation.class);
+        assertTrue(successResult.wasSuccessful());
+        assertEquals(2, successResult.getRunCount());
 
-    @Test
-    public void testsAreNotExecutedWhenAssumptionInParametersMethodFails() {
-        AssumptionInParametersMethod.assumptionFails = true;
-        Result result = JUnitCore.runClasses(AssumptionInParametersMethod.class);
-        assertTrue(result.wasSuccessful());
-        assertEquals(1, result.getAssumptionFailureCount());
-        assertEquals(0, result.getIgnoreCount());
-        assertEquals(0, result.getRunCount());
+        ParameterizedAssumtionViolation.condition = false;
+        JUnitCore core = new JUnitCore();
+        final List<Failure> assumptionFailures = new ArrayList<Failure>();
+        core.addListener(new RunListener() {
+            @Override
+            public void testAssumptionFailure(Failure failure) {
+                assumptionFailures.add(failure);
+            }
+        });
+        Result failureResult = core.run(ParameterizedAssumtionViolation.class);
+        assertTrue(failureResult.wasSuccessful());
+        assertEquals(0, failureResult.getRunCount());
+        assertEquals(0, failureResult.getIgnoreCount());
+        assertEquals(1, assumptionFailures.size());
     }
 }
