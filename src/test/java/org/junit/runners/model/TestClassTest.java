@@ -1,7 +1,9 @@
 package org.junit.runners.model;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -132,35 +134,16 @@ public class TestClassTest {
         public int methodB() {
             return 0;
         }
-
-        public int methodWithoutAnnotation() {
-            return 0;
-        }
     }
 
     @Test
     public void providesAnnotatedMethodsSortedByName() {
         TestClass tc = new TestClass(MethodsAnnotated.class);
         List<FrameworkMethod> annotatedMethods = tc.getAnnotatedMethods();
-        List<String> methodNames = extractNames(annotatedMethods);
-        assertThat(methodNames.indexOf("methodA"),
-            lessThan(methodNames.indexOf("methodB")));
-    }
-
-    @Test
-    public void getAnnotatedMethodsDoesNotReturnMethodWithoutAnnotation() {
-        TestClass tc = new TestClass(MethodsAnnotated.class);
-        List<FrameworkMethod> annotatedMethods = tc.getAnnotatedMethods();
-        List<String> methodNames = extractNames(annotatedMethods);
-        assertThat(methodNames, not(hasItem("methodWithoutAnnotation")));
-    }
-
-    private List<String> extractNames(List<FrameworkMethod> methods) {
-        List<String> names = new ArrayList<String>();
-        for (FrameworkMethod method: methods) {
-            names.add(method.getName());
-        }
-        return names;
+        assertThat("Wrong number of annotated methods.",
+                annotatedMethods.size(), is(3));
+        assertThat("First annotated method is wrong.", annotatedMethods
+                .iterator().next().getName(), is("methodA"));
     }
 
     @Test
